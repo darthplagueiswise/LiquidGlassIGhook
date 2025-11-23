@@ -7,8 +7,10 @@ INSTALL_TARGET_PROCESSES = Instagram
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = LiquidGlassIGhook
-$(TWEAK_NAME)_FILES = $(wildcard src/*.xm)
-$(TWEAK_NAME)_FRAMEWORKS = UIKit Foundation
-$(TWEAK_NAME)_CFLAGS = -fobjc-arc
+LiquidGlassIGhook_FILES = src/IGLiquidGlassIGHook.xm \
+                          fishhook/fishhook.c
+LiquidGlassIGhook_LDFLAGS += -undefined dynamic_lookup
+LiquidGlassIGhook_FRAMEWORKS = UIKit Foundation
+LiquidGlassIGhook_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
