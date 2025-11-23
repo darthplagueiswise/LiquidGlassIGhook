@@ -29,10 +29,18 @@ jobs:
           make clean
           make package FINALPACKAGE=1
 
-      - name: Artifacts
+      - name: Export dylib artifact
+        run: |
+          DYLIB_PATH=$(find .theos/obj -name "*.dylib" | head -n 1)
+          echo "Found dylib: $DYLIB_PATH"
+          mkdir -p output
+          cp "$DYLIB_PATH" output/
+        shell: bash
+
+      - name: Upload artifacts (.deb and .dylib)
         uses: actions/upload-artifact@v4
         with:
           name: LiquidGlassIGhook-artifacts
           path: |
             packages/*.deb
-            *.dylib
+            output/*.dylib
