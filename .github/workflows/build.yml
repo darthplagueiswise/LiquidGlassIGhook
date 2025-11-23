@@ -7,12 +7,8 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     timeout-minutes: 30
-
-    env:
-      THEOS: ${{ github.workspace }}/theos
-      THEOS_MAKE_PATH: ${{ github.workspace }}/theos/makefiles
 
     steps:
       - name: Checkout
@@ -24,11 +20,12 @@ jobs:
         run: brew install ldid dpkg || true
 
       - name: Fetch Theos (with all sub-modules, incl. Orion & Logos)
-        run: git clone --recursive https://github.com/theos/theos.git "$THEOS"
+        run: git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
 
       - name: Build / Package
         run: |
-          export THEOS THEOS_MAKE_PATH
+          export THEOS="$HOME/theos"
+          export THEOS_MAKE_PATH="$THEOS/makefiles"
           make clean
           make package FINALPACKAGE=1
 
