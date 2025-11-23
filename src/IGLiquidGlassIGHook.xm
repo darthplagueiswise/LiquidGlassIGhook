@@ -1,24 +1,23 @@
 // src/IGLiquidGlassIGHook.xm
 //
 // Theos / Logos tweak to force Instagram's internal LiquidGlass UI gates ON.
-// We hook private C-level functions using %hookf. To avoid “undeclared identifier”
-// errors, we declare the C prototypes *before* any Logos macros are used.
+// We hook private C-level functions using %hookf. We declare the C prototypes
+// after importing Foundation so BOOL / NSInteger are known, and before any Logos
+// macros are used.
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #pragma mark - Private C symbols (prototypes)
 
 // These are *not* declared in any public header, so we declare them ourselves.
-// Signatures baseadas no que você viu no Ghidra: sem argumentos, retornos simples.
+// Signatures baseadas no que foi visto no Ghidra: sem argumentos, retornos simples.
 
 typedef NSInteger IGTabBarStyle;
 
 BOOL METAIsLiquidGlassEnabled(void);
 BOOL IGIsCustomLiquidGlassTabBarEnabledForLauncherSet(void);
 IGTabBarStyle IGTabBarStyleForLauncherSet(void);
-
-#pragma mark - Standard imports
-
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 #pragma mark - Global LiquidGlass meta gate
 
