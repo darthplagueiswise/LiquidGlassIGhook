@@ -1,0 +1,9 @@
+Package: com.nr.liquidglassighook
+Name: LiquidGlassIGhook
+Depends: mobilesubstrate
+Version: 0.1.0
+Architecture: iphoneos-arm
+Description: Force Instagram LiquidGlass UI gates ON (tab bar + related surfaces).
+Maintainer: Vader <you@example.com>
+Author: Vader
+Section: Tweaks
