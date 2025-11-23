@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      THEOS: $HOME/theos
+      THEOS_MAKE_PATH: $HOME/theos/makefiles
 
     steps:
       - name: Checkout repository
