@@ -1,17 +1,28 @@
 // src/IGLiquidGlassIGHook.xm
 //
 // Theos / Logos tweak to force Instagram's internal LiquidGlass UI gates ON.
-// Uses %hookf on private C functions.
+// We hook private C-level functions using %hookf. To avoid “undeclared identifier”
+// errors, we declare the C prototypes *before* any Logos macros are used.
 
-#import <Foundation/Foundation.h>
+#pragma mark - Private C symbols (prototypes)
 
-#pragma mark - Tab bar style enum
+// These are *not* declared in any public header, so we declare them ourselves.
+// Signatures baseadas no que você viu no Ghidra: sem argumentos, retornos simples.
 
 typedef NSInteger IGTabBarStyle;
-static const IGTabBarStyle IGTabBarStyleLiquidGlass = 2;
+
+BOOL METAIsLiquidGlassEnabled(void);
+BOOL IGIsCustomLiquidGlassTabBarEnabledForLauncherSet(void);
+IGTabBarStyle IGTabBarStyleForLauncherSet(void);
+
+#pragma mark - Standard imports
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #pragma mark - Global LiquidGlass meta gate
 
+// BOOL METAIsLiquidGlassEnabled(void);
 %hookf(BOOL, METAIsLiquidGlassEnabled) {
     // Always report LiquidGlass as globally enabled.
     return YES;
@@ -19,6 +30,7 @@ static const IGTabBarStyle IGTabBarStyleLiquidGlass = 2;
 
 #pragma mark - Custom LiquidGlass tab bar gate
 
+// BOOL IGIsCustomLiquidGlassTabBarEnabledForLauncherSet(void);
 %hookf(BOOL, IGIsCustomLiquidGlassTabBarEnabledForLauncherSet) {
     // Force the launcher tab bar to use the custom LiquidGlass style.
     return YES;
@@ -26,17 +38,16 @@ static const IGTabBarStyle IGTabBarStyleLiquidGlass = 2;
 
 #pragma mark - Tab bar style resolver
 
+// Enum-like return; constant chosen via reverse engineering.
+static const IGTabBarStyle IGTabBarStyleLiquidGlass = 2;
+
+// IGTabBarStyle IGTabBarStyleForLauncherSet(void);
 %hookf(IGTabBarStyle, IGTabBarStyleForLauncherSet) {
     // Always return the LiquidGlass style.
     return IGTabBarStyleLiquidGlass;
 }
 
-#pragma mark - Optional future extensions
-
-// If later you confirm more C-type gates (ex.: toasts, dialogs), you can
-// add more %hookf in the same pattern:
-//
+#pragma mark - Optional future C gates
+// If later you confirm additional C gates (toasts, dialogs, etc.), you can add:
 // BOOL METAIsLiquidGlassToastEnabled(void);
-// %hookf(BOOL, METAIsLiquidGlassToastEnabled) {
-//     return YES;
-// }
+// %hookf(BOOL, METAIsLiquidGlassToastEnabled) { return YES; }
