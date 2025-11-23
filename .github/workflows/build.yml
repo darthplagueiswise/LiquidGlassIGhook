@@ -18,7 +18,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install ldid || true
+          # ldid is needed to codesign the built dylib; dpkg provides dpkg-deb
+          # used by Theos when creating the Debian package.
+          brew install ldid dpkg || true
 
       - name: Clone Theos
         run: |
