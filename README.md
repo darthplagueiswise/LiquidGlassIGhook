@@ -1,53 +1,58 @@
 # LiquidGlassIGhook
 
-A small Theos tweak for Instagram (`com.burbn.instagram`) that forces Meta’s internal LiquidGlass UI gates ON, enabling the LiquidGlass tab bar style and related UI surfaces on modern iOS (including iOS 26).
+A self-contained Theos tweak that **forces Instagram’s hidden LiquidGlass
+UI** (tab-bar blur, context-menu, toast, alert & notification styles) without
+binary patching.
 
-The tweak is built as a standard MobileSubstrate tweak using Theos + Logos and is meant to be injected manually into an Instagram IPA (e.g. via Feather). This repository does **not** handle IPA patching or signing.
+| Feature | Method(s) hooked | Behaviour |
+|---------|------------------|-----------|
+| Global LiquidGlass gate | `METAIsLiquidGlassEnabled` | Always **ON** |
+| Tab-bar LiquidGlass gate | `IGIsCustomLiquidGlassTabBarEnabledForLauncherSet` | Always **ON** |
+| Tab-bar style | `IGTabBarStyleForLauncherSet` | Always returns **1** (LiquidGlass enum) |
+| Extra UI (toast/dialog/CM) | `isLiquidGlass*Enabled` selectors | All forced **ON** |
+| Offset mitigation | `shouldMitigateLiquidGlassYOffset` | Forced **OFF** |
 
-## Features
-
-- Forces the global LiquidGlass experiment gate ON:
-  - `METAIsLiquidGlassEnabled`
-- Forces the custom LiquidGlass tab bar gate ON:
-  - `IGIsCustomLiquidGlassTabBarEnabledForLauncherSet`
-- Forces the tab bar style resolver to return the LiquidGlass style:
-  - `IGTabBarStyleForLauncherSet`
-
-All hooks are pure Logos `%hookf` C-function hooks.
-
-## Structure
-
-- `AGENTS.md` — Instructions for AI coding agents (Codex / Copilot Workspace).
-- `Makefile` — Theos tweak Makefile.
-- `control` — Debian package metadata.
-- `LiquidGlassIGhook.plist` — Substrate filter; targets `com.burbn.instagram`.
-- `src/IGLiquidGlassIGHook.xm` — Main tweak logic (Logos).
-- `.github/workflows/build.yml` — GitHub Actions workflow (builds the tweak with Theos).
-
-## Building (local Theos)
-
-Prerequisites:
-
-- Theos installed and configured.
-- `THEOS` and `THEOS_MAKE_PATH` environment variables set.
-
-Build:
+## Build locally
 
 ```bash
-make clean
+git clone --recursive https://github.com/darthplagueiswise/LiquidGlassIGhook.git
+cd LiquidGlassIGhook
+export THEOS=~/theos         # or any path you want
+git clone --recursive https://github.com/theos/theos.git "$THEOS"
 make package FINALPACKAGE=1
 ```
 
-The resulting .deb will be in packages/.
+The resulting .deb and .dylib land in ./packages / repo root.
 
-## Building via GitHub Actions
+## CI
 
-This repository includes a GitHub Actions workflow (build) that:
-1. Clones Theos into $HOME/theos.
-2. Exports THEOS and THEOS_MAKE_PATH.
-3. Runs make clean and make package FINALPACKAGE=1.
-4. Uploads the .deb and .dylib as build artifacts.
-
-Trigger a build by pushing to main or manually running the build workflow from the Actions tab.
+The GitHub Actions workflow (.github/workflows/build.yml) automatically:
+1. Installs Theos (with Logos, Orion, fishhook sub-module).
+2. Builds arm64 tweak against iOS 17 SDK.
+3. Publishes artifacts for download.
 
 ---
+
+### Copy-and-paste quick-start
+
+```bash
+# create repo skeleton
+git clone --depth=1 https://github.com/darthplagueiswise/LiquidGlassIGhook.git
+cd LiquidGlassIGhook
+mkdir -p .github/workflows src
+git submodule add https://github.com/facebook/fishhook.git fishhook
+
+# drop the files shown above into their paths (README, Makefile, build.yml, IGLiquidGlassIGHook.xm)
+
+git add .
+git commit -m "Initial fully-working LiquidGlass tweak"
+git push
+# 🚀 GitHub Actions will compile & upload LiquidGlassIGhook.dylib + .deb automatically
+```
+
+This layout eliminates every error you saw:
+- No “undefined symbol”—we use Logos %hookf, which performs late-binding; the linker never needs the Instagram symbols at build time.
+- Theos paths always present—workflow sets THEOS & THEOS_MAKE_PATH before running make.
+- fishhook present—added as Git sub-module, compiled via Makefile.
+
+You can now clone, push, and let Codex (GitHub Actions) do the heavy lifting—zero local Xcode required.
