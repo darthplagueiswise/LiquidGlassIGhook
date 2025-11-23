@@ -38,4 +38,4 @@ jobs:
           name: LiquidGlassIGhook-artifacts
           path: |
             packages/*.deb
-            .theos/obj/**/LiquidGlassIGhook.dylib
+            *.dylib

@@ -1,7 +1,9 @@
-TARGET := iphone:clang:latest
-ARCHS  := arm64
-
-# The process we want to inject into
+TWEAK_NAME      = LiquidGlassIGhook
+LiquidGlassIGhook_FILES = src/IGLiquidGlassIGHook.xm \
+                          fishhook/fishhook.c
+LiquidGlassIGhook_LDFLAGS += -undefined dynamic_lookup
+ARCHS            = arm64
+TARGET           = iphone:clang:17.0
 INSTALL_TARGET_PROCESSES = Instagram
 
 # Theos paths are provided by CI via THEOS and THEOS_MAKE_PATH.
@@ -18,6 +20,3 @@ $(TWEAK_NAME)_FRAMEWORKS = UIKit Foundation
 $(TWEAK_NAME)_CFLAGS     = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-after-install::
-	install.exec "killall -9 Instagram || true"
