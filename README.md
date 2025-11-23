@@ -40,13 +40,13 @@ make package FINALPACKAGE=1
 
 The resulting .deb will be in packages/.
 
-Building via GitHub Actions
+## Building via GitHub Actions
 
 This repository includes a GitHub Actions workflow (build) that:
-	1.	Clones Theos into $HOME/theos.
-	2.	Exports THEOS and THEOS_MAKE_PATH.
-	3.	Runs make clean and make package FINALPACKAGE=1.
-	4.	Uploads the .deb and .dylib as build artifacts.
+1. Clones Theos into $HOME/theos.
+2. Exports THEOS and THEOS_MAKE_PATH.
+3. Runs make clean and make package FINALPACKAGE=1.
+4. Uploads the .deb and .dylib as build artifacts.
 
 Trigger a build by pushing to main or manually running the build workflow from the Actions tab.
 
