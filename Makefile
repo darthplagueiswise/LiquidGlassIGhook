@@ -15,7 +15,7 @@ TWEAK_NAME = LiquidGlassIGhook
 
 $(TWEAK_NAME)_FILES      = $(wildcard src/*.xm)
 $(TWEAK_NAME)_FRAMEWORKS = UIKit Foundation
-$(TWEAK_NAME)_CFLAGS     = -fobjc-arc -Wno-implicit-function-declaration
+$(TWEAK_NAME)_CFLAGS     = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

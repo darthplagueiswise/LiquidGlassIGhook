@@ -2,44 +2,40 @@ name: build
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: [ "main", "master" ]
+  workflow_dispatch: {}
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15-arm64
+    timeout-minutes: 30
+
     env:
-      THEOS: $HOME/theos
-      THEOS_MAKE_PATH: $HOME/theos/makefiles
+      THEOS: ${{ github.workspace }}/theos
+      THEOS_MAKE_PATH: ${{ github.workspace }}/theos/makefiles
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install dependencies
-        run: |
-          # ldid is needed to codesign the built dylib; dpkg provides dpkg-deb
-          # used by Theos when creating the Debian package.
-          brew install ldid dpkg || true
+      - name: Install deps (ldid, dpkg-deb, etc.)
+        run: brew install ldid dpkg || true
 
-      - name: Clone Theos
-        run: |
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+      - name: Fetch Theos (with all sub-modules, incl. Orion & Logos)
+        run: git clone --recursive https://github.com/theos/theos.git "$THEOS"
 
-      - name: Build tweak with Theos
+      - name: Build / Package
         run: |
-          set -e
-          export THEOS="$HOME/theos"
-          export THEOS_MAKE_PATH="$THEOS/makefiles"
-          echo "THEOS=$THEOS"
-          echo "THEOS_MAKE_PATH=$THEOS_MAKE_PATH"
+          export THEOS THEOS_MAKE_PATH
           make clean
           make package FINALPACKAGE=1
 
-      - name: Upload build artifacts
+      - name: Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LiquidGlassIGhook-build
+          name: LiquidGlassIGhook-artifacts
           path: |
             packages/*.deb
             .theos/obj/**/LiquidGlassIGhook.dylib
