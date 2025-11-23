@@ -1,0 +1,41 @@
+name: build
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install ldid || true
+
+      - name: Clone Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+
+      - name: Build tweak with Theos
+        env:
+          THEOS: ${{ env.HOME }}/theos
+          THEOS_MAKE_PATH: ${{ env.HOME }}/theos/makefiles
+        run: |
+          set -e
+          echo "THEOS=$THEOS"
+          echo "THEOS_MAKE_PATH=$THEOS_MAKE_PATH"
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiquidGlassIGhook-build
+          path: |
+            packages/*.deb
+            .theos/obj/**/LiquidGlassIGhook.dylib
