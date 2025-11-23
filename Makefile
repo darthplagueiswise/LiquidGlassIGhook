@@ -15,9 +15,9 @@ TWEAK_NAME = LiquidGlassIGhook
 
 $(TWEAK_NAME)_FILES      = $(wildcard src/*.xm)
 $(TWEAK_NAME)_FRAMEWORKS = UIKit Foundation
-$(TWEAK_NAME)_CFLAGS     = -fobjc-arc
+$(TWEAK_NAME)_CFLAGS     = -fobjc-arc -Wno-implicit-function-declaration
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-install::
-install.exec "killall -9 Instagram || true"
+	install.exec "killall -9 Instagram || true"
