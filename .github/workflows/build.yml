@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      THEOS: $HOME/theos
+      THEOS_MAKE_PATH: $HOME/theos/makefiles
 
     steps:
       - name: Checkout repository
@@ -22,9 +25,6 @@ jobs:
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
 
       - name: Build tweak with Theos
-        env:
-          THEOS: ${{ env.HOME }}/theos
-          THEOS_MAKE_PATH: ${{ env.HOME }}/theos/makefiles
         run: |
           set -e
           echo "THEOS=$THEOS"
