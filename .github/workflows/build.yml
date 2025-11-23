@@ -2,45 +2,34 @@ name: build
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: {}
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Install deps (ldid, dpkg-deb, etc.)
-        run: brew install ldid dpkg || true
-
-      - name: Fetch Theos (with all sub-modules, incl. Orion & Logos)
-        run: git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
-
-      - name: Build / Package
+      - name: Install Theos
         run: |
-          export THEOS="$HOME/theos"
-          export THEOS_MAKE_PATH="$THEOS/makefiles"
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+
+      - name: Build & package
+        env:
+          THEOS: ${{ env.HOME }}/theos
+          THEOS_MAKE_PATH: ${{ env.HOME }}/theos/makefiles
+        run: |
+          export THEOS THEOS_MAKE_PATH
           make clean
           make package FINALPACKAGE=1
 
-      - name: Export dylib artifact
-        run: |
-          DYLIB_PATH=$(find .theos/obj -name "*.dylib" | head -n 1)
-          echo "Found dylib: $DYLIB_PATH"
-          mkdir -p output
-          cp "$DYLIB_PATH" output/
-        shell: bash
-
-      - name: Upload artifacts (.deb and .dylib)
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LiquidGlassIGhook-artifacts
+          name: LiquidGlassIGhook-build
           path: |
             packages/*.deb
-            output/*.dylib
+            .theos/obj/**/LiquidGlassIGhook.dylib
