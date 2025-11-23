@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15-arm64   # fastest modern runner
+    runs-on: macos-15-arm64
     timeout-minutes: 30
 
     env:
