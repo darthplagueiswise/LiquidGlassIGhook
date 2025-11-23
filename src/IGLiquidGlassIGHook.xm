@@ -1,57 +1,56 @@
-// src/IGLiquidGlassIGHook.xm
-//
-// Theos / Logos tweak to force Instagram's internal LiquidGlass UI gates ON.
-// Uses %hookf on private C functions. We declare prototypes explicitly so
-// clang knows these symbols exist at link/load time.
+#import <substrate.h>
+#import <objc/runtime.h>
+#include "fishhook.h"
 
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+#pragma mark - C-level gates (safe Logos %hookf)
 
-#pragma mark - Private C symbols (prototypes)
+%hookf(BOOL, METAIsLiquidGlassEnabled)                { return YES; }
+%hookf(BOOL, IGIsCustomLiquidGlassTabBarEnabledForLauncherSet) { return YES; }
+%hookf(int,  IGTabBarStyleForLauncherSet)             { return 1; }    // 1 → LiquidGlass
 
-// These functions live in Instagram's shared frameworks (ex.: FBSharedFramework).
-// They do NOT exist in public headers, so we declare them here to satisfy the compiler.
-// Assumindo pela engenharia reversa que todas são funções sem argumentos (void).
+#pragma mark - Runtime Objective-C flag overrides
 
-typedef NSInteger IGTabBarStyle;
+static BOOL _lg_yes(id self, SEL _cmd) { return YES; }
+static BOOL _lg_no (id self, SEL _cmd) { return NO; }
 
-BOOL METAIsLiquidGlassEnabled(void);
-BOOL IGIsCustomLiquidGlassTabBarEnabledForLauncherSet(void);
-IGTabBarStyle IGTabBarStyleForLauncherSet(void);
+static void lgHookSelector(const char *name, BOOL yes) {
+    SEL sel = sel_getUid(name);
+    if (!sel) return;
 
-#pragma mark - Global LiquidGlass meta gate
+    int num = objc_getClassList(NULL, 0);
+    Class *classes = (Class *)malloc(sizeof(Class)*num);
+    num = objc_getClassList(classes, num);
 
-// BOOL METAIsLiquidGlassEnabled(void);
-%hookf(BOOL, METAIsLiquidGlassEnabled) {
-    // Always report LiquidGlass as globally enabled.
-    return YES;
+    IMP imp = (IMP)(yes ? _lg_yes : _lg_no);
+
+    for (int i = 0; i < num; i++) {
+        Class c = classes[i];
+        if (class_respondsToSelector(c, sel)) {
+            Method m = class_getInstanceMethod(c, sel);
+            method_setImplementation(m, imp);
+        }
+        Class meta = object_getClass(c);
+        if (meta && class_respondsToSelector(meta, sel)) {
+            Method m = class_getClassMethod(meta, sel);
+            method_setImplementation(m, imp);
+        }
+    }
+    free(classes);
 }
 
-#pragma mark - Custom LiquidGlass tab bar gate
+__attribute__((constructor))
+static void lgInit(void) {
+    // 1. Extra LiquidGlass booleans → YES
+    const char *yesSels[] = {
+        "isLiquidGlassContextMenuEnabled",
+        "isLiquidGlassInAppNotificationEnabled",
+        "isLiquidGlassToastEnabled",
+        "isLiquidGlassToastPeekEnabled",
+        "isLiquidGlassAlertDialogEnabled"
+    };
+    for (unsigned i = 0; i < sizeof(yesSels)/sizeof(*yesSels); i++)
+        lgHookSelector(yesSels[i], YES);
 
-// BOOL IGIsCustomLiquidGlassTabBarEnabledForLauncherSet(void);
-%hookf(BOOL, IGIsCustomLiquidGlassTabBarEnabledForLauncherSet) {
-    // Force the launcher tab bar to use the custom LiquidGlass style.
-    return YES;
+    // 2. YOffset mitigation → NO (optional)
+    lgHookSelector("shouldMitigateLiquidGlassYOffset", NO);
 }
-
-#pragma mark - Tab bar style resolver
-
-// The original function likely returns an enum representing tab bar style.
-static const IGTabBarStyle IGTabBarStyleLiquidGlass = 2;
-
-// IGTabBarStyle IGTabBarStyleForLauncherSet(void);
-%hookf(IGTabBarStyle, IGTabBarStyleForLauncherSet) {
-    // Always return the LiquidGlass style.
-    return IGTabBarStyleLiquidGlass;
-}
-
-#pragma mark - Optional future extensions
-
-// If later you confirmar mais gates C-type (ex.: toasts, dialogs), você pode
-// adicionar mais %hookf nesta mesma pegada:
-//
-// BOOL METAIsLiquidGlassToastEnabled(void);
-// %hookf(BOOL, METAIsLiquidGlassToastEnabled) {
-//     return YES;
-// }
