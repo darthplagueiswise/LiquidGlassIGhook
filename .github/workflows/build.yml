@@ -22,11 +22,10 @@ jobs:
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
 
       - name: Build tweak with Theos
-        env:
-          THEOS: ${{ env.HOME }}/theos
-          THEOS_MAKE_PATH: ${{ env.HOME }}/theos/makefiles
         run: |
           set -e
+          export THEOS="$HOME/theos"
+          export THEOS_MAKE_PATH="$THEOS/makefiles"
           echo "THEOS=$THEOS"
           echo "THEOS_MAKE_PATH=$THEOS_MAKE_PATH"
           make clean
