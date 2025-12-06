@@ -1,0 +1,80 @@
+name: Build LiquidGlass Hook Dylib
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Install Theos
+      run: |
+        git clone https://github.com/theos/theos.git $HOME/theos
+        echo "export THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "export PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
+        
+    - name: Install Dependencies
+      run: |
+        brew install ldid
+        xcode-select --install || true
+        
+    - name: Build Package
+      run: |
+        export THEOS=$HOME/theos
+        export PATH=$HOME/theos/bin:$PATH
+        make package
+        
+    - name: Extract Dylib
+      run: |
+        mkdir -p artifacts
+        dpkg-deb -x debs/*.deb temp/
+        # Try primary path first
+        if [ -f "temp/Library/MobileSubstrate/DynamicLibraries/InstagramLiquidGlassHook.dylib" ]; then
+          cp temp/Library/MobileSubstrate/DynamicLibraries/InstagramLiquidGlassHook.dylib artifacts/
+        else
+          # Fallback: find any dylib in temp
+          DYLIB_PATH=$(find temp -name "*.dylib" | head -1)
+          if [ -n "$DYLIB_PATH" ]; then
+            cp "$DYLIB_PATH" artifacts/InstagramLiquidGlassHook.dylib
+          else
+            echo "ERROR: No dylib found in package!"
+            exit 1
+          fi
+        fi
+        ls -lh artifacts/
+        
+    - name: Sign Dylib
+      run: |
+        if [ ! -f "artifacts/InstagramLiquidGlassHook.dylib" ]; then
+          echo "ERROR: Dylib not found for signing!"
+          exit 1
+        fi
+        ldid -Sentitlements.xml artifacts/InstagramLiquidGlassHook.dylib
+        echo "Dylib signed successfully"
+        
+    - name: Generate Checksum
+      run: |
+        cd artifacts
+        shasum -a 256 InstagramLiquidGlassHook.dylib > checksum.txt
+        cat checksum.txt
+        
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v$(date +%Y%m%d-%H%M%S)
+        name: Release v$(date +%Y%m%d-%H%M%S)
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/InstagramLiquidGlassHook.dylib
+          artifacts/checksum.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
