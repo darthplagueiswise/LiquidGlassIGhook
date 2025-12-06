@@ -1,0 +1,132 @@
+name: Build LiquidGlass Hook Dylib
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Install Theos
+      run: |
+        git clone https://github.com/theos/theos.git $HOME/theos
+        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
+        
+    - name: Install Dependencies
+      run: |
+        brew install ldid dpkg
+        xcode-select --install || true
+        
+    - name: Build Package
+      run: |
+        export THEOS=$HOME/theos
+        export PATH=$HOME/theos/bin:$PATH
+        make package
+        
+    - name: Extract Dylib
+      run: |
+        mkdir -p artifacts
+        # Clean temp directory to avoid conflicts from previous runs
+        rm -rf temp/
+        mkdir -p temp/
+        
+        # Find the .deb file
+        DEB_FILE=$(ls debs/*.deb | head -1)
+        if [ -z "$DEB_FILE" ]; then
+          echo "ERROR: No .deb file found in debs/"
+          exit 1
+        fi
+        
+        # Try dpkg-deb first, fallback to ar+tar extraction (macOS compatible)
+        if command -v dpkg-deb &> /dev/null; then
+          dpkg-deb -x "$DEB_FILE" temp/
+        else
+          # Extract .deb manually using ar and tar (macOS native tools)
+          # .deb files are ar archives containing data.tar.*
+          cd temp/
+          ar -x "../$DEB_FILE"
+          # Extract the data archive (could be data.tar.gz, data.tar.xz, or data.tar)
+          if [ -f data.tar.gz ]; then
+            tar -xzf data.tar.gz
+          elif [ -f data.tar.xz ]; then
+            tar -xJf data.tar.xz
+          elif [ -f data.tar ]; then
+            tar -xf data.tar
+          else
+            echo "ERROR: Could not find data archive in .deb file"
+            exit 1
+          fi
+          cd ..
+        fi
+        # Try primary path first
+        if [ -f "temp/Library/MobileSubstrate/DynamicLibraries/InstagramLiquidGlassHook.dylib" ]; then
+          cp temp/Library/MobileSubstrate/DynamicLibraries/InstagramLiquidGlassHook.dylib artifacts/
+        else
+          # Fallback: find any dylib in temp
+          DYLIB_PATH=$(find temp -name "*.dylib" | head -1)
+          if [ -n "$DYLIB_PATH" ]; then
+            cp "$DYLIB_PATH" artifacts/InstagramLiquidGlassHook.dylib
+          else
+            echo "ERROR: No dylib found in package!"
+            exit 1
+          fi
+        fi
+        ls -lh artifacts/
+        
+    - name: Set Install Name for IPA Injection
+      run: |
+        if [ ! -f "artifacts/InstagramLiquidGlassHook.dylib" ]; then
+          echo "ERROR: Dylib not found!"
+          exit 1
+        fi
+        # Set install_name to @executable_path/Frameworks for IPA injection
+        # This ensures LC_LOAD_DYLIB uses the correct path when injected into Instagram.app
+        install_name_tool -id "@executable_path/Frameworks/InstagramLiquidGlassHook.dylib" \
+          artifacts/InstagramLiquidGlassHook.dylib
+        echo "Install name set to @executable_path/Frameworks/InstagramLiquidGlassHook.dylib"
+        # Verify the install_name was set correctly
+        otool -L artifacts/InstagramLiquidGlassHook.dylib | head -2
+        
+    - name: Sign Dylib
+      run: |
+        if [ ! -f "artifacts/InstagramLiquidGlassHook.dylib" ]; then
+          echo "ERROR: Dylib not found for signing!"
+          exit 1
+        fi
+        ldid -Sentitlements.xml artifacts/InstagramLiquidGlassHook.dylib
+        echo "Dylib signed successfully"
+        
+    - name: Generate Checksum
+      run: |
+        cd artifacts
+        shasum -a 256 InstagramLiquidGlassHook.dylib > checksum.txt
+        cat checksum.txt
+        
+    - name: Generate Release Tag
+      id: release_tag
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        echo "RELEASE_TAG=v${TIMESTAMP}" >> $GITHUB_OUTPUT
+        echo "Release tag: v${TIMESTAMP}"
+        
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.release_tag.outputs.RELEASE_TAG }}
+        name: Release ${{ steps.release_tag.outputs.RELEASE_TAG }}
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/InstagramLiquidGlassHook.dylib
+          artifacts/checksum.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
