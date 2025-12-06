@@ -80,6 +80,20 @@ jobs:
         fi
         ls -lh artifacts/
         
+    - name: Set Install Name for IPA Injection
+      run: |
+        if [ ! -f "artifacts/InstagramLiquidGlassHook.dylib" ]; then
+          echo "ERROR: Dylib not found!"
+          exit 1
+        fi
+        # Set install_name to @executable_path/Frameworks for IPA injection
+        # This ensures LC_LOAD_DYLIB uses the correct path when injected into Instagram.app
+        install_name_tool -id "@executable_path/Frameworks/InstagramLiquidGlassHook.dylib" \
+          artifacts/InstagramLiquidGlassHook.dylib
+        echo "Install name set to @executable_path/Frameworks/InstagramLiquidGlassHook.dylib"
+        # Verify the install_name was set correctly
+        otool -L artifacts/InstagramLiquidGlassHook.dylib | head -2
+        
     - name: Sign Dylib
       run: |
         if [ ! -f "artifacts/InstagramLiquidGlassHook.dylib" ]; then
