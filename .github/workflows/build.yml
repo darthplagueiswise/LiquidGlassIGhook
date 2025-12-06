@@ -64,12 +64,19 @@ jobs:
         shasum -a 256 InstagramLiquidGlassHook.dylib > checksum.txt
         cat checksum.txt
         
+    - name: Generate Release Tag
+      id: release_tag
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        echo "RELEASE_TAG=v${TIMESTAMP}" >> $GITHUB_OUTPUT
+        echo "Release tag: v${TIMESTAMP}"
+        
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v$(date +%Y%m%d-%H%M%S)
-        name: Release v$(date +%Y%m%d-%H%M%S)
+        tag_name: ${{ steps.release_tag.outputs.RELEASE_TAG }}
+        name: Release ${{ steps.release_tag.outputs.RELEASE_TAG }}
         draft: false
         prerelease: false
         files: |
