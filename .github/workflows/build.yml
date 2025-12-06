@@ -33,6 +33,9 @@ jobs:
     - name: Extract Dylib
       run: |
         mkdir -p artifacts
+        # Clean temp directory to avoid conflicts from previous runs
+        rm -rf temp/
+        mkdir -p temp/
         dpkg-deb -x debs/*.deb temp/
         # Try primary path first
         if [ -f "temp/Library/MobileSubstrate/DynamicLibraries/InstagramLiquidGlassHook.dylib" ]; then
